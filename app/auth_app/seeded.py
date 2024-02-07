@@ -7,7 +7,6 @@ async def create_super_admin(email: str, password: str, name:str):
     if  not existing_user:
         password_mixin = PasswordMixin(password=password)
 
-    # Hash the password using the instance's hash_password method
         hashed_password = password_mixin.hash_password(password)
         owner = SuperAdmin(
             email=email,
