@@ -29,10 +29,3 @@ async def startup_db():
     except Exception as e:
         logger.error("Failed to start database: %s", e)
 
-
-async def get_db():
-    db = await startup_db()
-    try:
-        yield db
-    finally:
-        await db.close()
