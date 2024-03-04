@@ -4,7 +4,7 @@ from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.auth_app.models import (
     SuperAdmin,Admin,BusinessOwner,BusinessAdmin,
-    Customer,Teller
+    Customer,Teller,OTP,UserBase
 )
 import logging
 
@@ -22,10 +22,12 @@ async def startup_db():
                 SuperAdmin,
                  Admin,BusinessAdmin,
                  BusinessOwner,Customer,
-                 Teller
+                 Teller,
+                 UserBase,
+                 OTP,
                  ]  
         )
         logger.info("db started")
     except Exception as e:
-        logger.error("Failed to start database: %s", e)
+        logger.error("Failed to start database:", e)
 
