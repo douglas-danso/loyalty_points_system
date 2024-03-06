@@ -56,13 +56,10 @@ class Customer(Document):
 
     class Settings:
         name = 'customers'
-
 class BusinessOwner(Document):
-    business_id: UUID = Field(default_factory=uuid4)
     user_base:PydanticObjectId
     business_admins:Optional[List[PydanticObjectId]] = []
     tellers:Optional[List[PydanticObjectId]] = []
-
     class Settings:
         name = 'business_owners'
 

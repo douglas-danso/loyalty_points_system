@@ -9,7 +9,7 @@ import logging
 import bcrypt
 from . import oauth2
 from bson import json_util
-
+from beanie import PydanticObjectId
 
 
 logger = logging.getLogger(__name__)
@@ -441,10 +441,7 @@ class UserService:
             status=status.HTTP_404_NOT_FOUND
         )
     
-    @classmethod
-    async def get_all_users(cls):
-        users = await cls.user_repository.get_many()
-        return users
+
     
     @classmethod
     async def filter_users(cls, filter):
@@ -520,7 +517,83 @@ class UserService:
                 user_data["business_owner"] = user["business_owner"][0] 
                 for user in  user["business_owner"][0]:
                     logger.info(user)
+                id_list = []
+                teller_ids = user_data["business_owner"].get("tellers", [])
+                for ids in teller_ids:
+                    id_list.append(PydanticObjectId(ids["$oid"]))
 
+                logger.info({"id_list":id_list})
+                
+                tellers = await models.Teller.aggregate([
+                    {"$match": {"_id": {"$in": id_list}}},
+                    
+                    {
+                        "$lookup": {
+                            "from": "user_base",
+                            "localField": "user_base",
+                            "foreignField": "_id",
+                            "as": "teller_info"
+                },
+            },
+                    ]).to_list()
+                logger.info({"tellers":tellers})
+
+                tellers = json.loads(json_util.dumps(tellers))
+                
+                teller_data_list = []
+                for teller in tellers:
+                    teller_info = teller.get("teller_info", [])
+                    for teller_info_item in teller_info:
+                        teller_data_list.append({
+                            "_id": str(teller_info_item["_id"]),
+                            "name": teller_info_item["name"],
+                            "email": teller_info_item.get("email", None),
+                            "role": teller_info_item["role"],
+                            "is_active": teller_info_item["is_active"]
+                        })
+
+                user_data["business_owner"]["tellers"] = teller_data_list
+
+
+
+                admin_id_list = []
+                admins_ids = user_data["business_owner"].get("business_admins", [])
+                for ids in admins_ids:
+                    admin_id_list.append(PydanticObjectId(ids["$oid"]))
+
+                logger.info({"admin_id_list":admin_id_list})
+                
+                admins = await models.BusinessAdmin.aggregate([
+                    {"$match": {"_id": {"$in": admin_id_list}}},
+                    
+                    {
+                        "$lookup": {
+                            "from": "user_base",
+                            "localField": "user_base",
+                            "foreignField": "_id",
+                            "as": "business_admin_info"
+                },
+            },
+                    ]).to_list()
+                logger.info({"admins":admins})
+
+                admins = json.loads(json_util.dumps(admins))
+                
+                admin_data_list = []
+                for admin in admins:
+                    admin_info = admin.get("business_admin_info", [])
+                    for admin_info_item in admin_info:
+                        admin_data_list.append({
+                            "_id": str(admin_info_item["_id"]),
+                            "name": admin_info_item["name"],
+                            "email": admin_info_item.get("email", None),
+                            "role": admin_info_item["role"],
+                            "is_active": admin_info_item["is_active"]
+                        })
+
+                user_data["business_owner"]["business_admins"] = admin_data_list
+
+               
             if user_data["role"] == "admin" and user["admin"]:
                 user_data["admin"] = user["admin"][0]
 
@@ -542,4 +615,4 @@ class UserService:
     async def create_new_token(token:str):
         access_token = await oauth2.create_new_token(token)
         return await responses.success_message_data("new token created successfully",
-                                                 {"access_token":access_token}   )
+                                                 {"access_token":access_token})

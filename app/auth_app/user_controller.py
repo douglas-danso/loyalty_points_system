@@ -81,17 +81,21 @@ async def create_invite_admin_users(data:CreateInvitedAdmin, otp:str):
     data.otp = otp
     return await UserService.create_admin(data)
 
-@auth_router.get("/", response_model=List[UserData])
-async def get_all_users():
-    return await UserService.get_all_users()
 
 @auth_router.get("/filter")
-async def filter_users(filter_role: str = None):
+async def filter_users(search: str=None ,filter_role: str=None,):
     filter = {}
+    if search:
+        filter["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+        ]
+
     if filter_role:
         filter["role"] = filter_role
     
     return await UserService.filter_users(filter=filter)
+
 
 @auth_router.post("/refresh_token")
 async def refresh_token(token:str):
